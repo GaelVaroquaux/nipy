@@ -39,7 +39,7 @@ def plot_map(map, affine, cut_coords=None, anat=None, anat_affine=None,
                     annotate=True, draw_cross=True, 
                     do3d=False, threshold_3d=None,
                     view_3d=(38.5, 70.5, 300, (-2.7, -12, 9.1)),
-                    black_bg=False,
+                    black_bg=False, tight=False,
                     **kwargs):
     """ Plot three cuts of a given activation map (Frontal, Axial, and Lateral)
 
@@ -98,6 +98,9 @@ def plot_map(map, affine, cut_coords=None, anat=None, anat_affine=None,
             you whish to save figures with a black background, you
             will need to pass "facecolor='k', edgecolor='k'" to pylab's
             savefig.
+        tight: boolean, optional
+            If True, the extents of the different axis is taken 
+            as a tight bound on slices displayed.
         kwargs: extra keyword arguments, optional
             Extra keyword arguments passed to pylab.imshow
 
@@ -201,14 +204,14 @@ def plot_map(map, affine, cut_coords=None, anat=None, anat_affine=None,
     ortho_slicer = plot_anat(anat, anat_affine, cut_coords=cut_coords,
                              figure=figure, axes=axes, title=title,
                              annotate=annotate, draw_cross=draw_cross,
-                             black_bg=black_bg)
+                             black_bg=black_bg, tight=tight)
     ortho_slicer.plot_map(map, affine, **kwargs)
     return ortho_slicer
 
 
 def plot_anat(anat=None, anat_affine=None, cut_coords=None, figure=None, 
               axes=None, title=None, annotate=True, draw_cross=True,
-              black_bg=False, dim=False):
+              black_bg=False, dim=False, tight=False):
     """ Plot three cuts of an anatomical image (Frontal, Axial, and Lateral)
 
         Parameters
@@ -248,6 +251,9 @@ def plot_anat(anat=None, anat_affine=None, cut_coords=None, figure=None,
             you whish to save figures with a black background, you
             will need to pass "facecolor='k', edgecolor='k'" to pylab's
             savefig.
+        tight: boolean, optional
+            If True, the extents of the different axis is taken 
+            as a tight bound on slices displayed.
 
         Notes
         -----
@@ -286,7 +292,8 @@ def plot_anat(anat=None, anat_affine=None, cut_coords=None, figure=None,
             x, y, z = .5*np.array(anat.shape)
             cut_coords = coord_transform(x, y, z, anat_affine) 
 
-    ortho_slicer = OrthoSlicer(cut_coords, axes=axes, black_bg=black_bg)
+    ortho_slicer = OrthoSlicer(cut_coords, axes=axes, black_bg=black_bg,
+                    tight=tight)
     # Check that we should indeed plot an anat: we have one, and the
     # cut_coords are in its range
     x, y, z = cut_coords

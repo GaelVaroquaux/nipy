@@ -207,7 +207,7 @@ class OrthoSlicer(object):
         best in the viewing area.
     """
 
-    def __init__(self, cut_coords, axes=None, black_bg=False):
+    def __init__(self, cut_coords, axes=None, black_bg=False, tight=False):
         """ Create 3 linked axes for plotting orthogonal cuts.
 
             Parameters
@@ -221,7 +221,9 @@ class OrthoSlicer(object):
                 black. If you whish to save figures with a black background, 
                 you will need to pass "facecolor='k', edgecolor='k'" to 
                 pylab's savefig.
-
+            tight: boolean, optional
+                If True, the extents of the different axis is taken 
+                as a tight bound on slices displayed.
         """
         self._cut_coords = cut_coords
         if axes is None:
@@ -234,6 +236,7 @@ class OrthoSlicer(object):
         x0, y0, x1, y1 = self.rect
         self._object_bounds = dict()
         self._black_bg = black_bg
+        self._tight = tight
 
         # Create our axes:
         self.axes = dict()
@@ -509,11 +512,27 @@ class OrthoSlicer(object):
                                         xmin, xmax, ymin, ymax, zmin, zmax
         if hasattr(map, 'mask'):
             not_mask = np.logical_not(map.mask)
+            if type == 'contour':
+                # pylab.contour doesn't like working with masked arrays
+                map = np.asarray(map)*not_mask
+            if self._tight:
+                # Put to 0 the mask outside our cut
+                not_mask[:x_map,   :y_map,   :z_map] = False
+                not_mask[x_map+1:, :y_map,   :z_map] = False
+                not_mask[:x_map,   y_map+1:, :z_map] = False
+                not_mask[x_map+1:, y_map+1:, :z_map] = False
+                not_mask[:x_map,   :y_map,   z_map+1:] = False
+                not_mask[x_map+1:, :y_map,   z_map+1:] = False
+                not_mask[:x_map,   y_map+1:, z_map+1:] = False
+                not_mask[x_map+1:, y_map+1:, z_map+1:] = False
             xmin_, xmax_, ymin_, ymax_, zmin_, zmax_ = \
                             get_mask_bounds(not_mask, affine)
             if kwargs.get('vmin') is None and kwargs.get('vmax') is None:
                 # Avoid dealing with masked arrays: they are slow
                 masked_map = np.asarray(map)[not_mask]
+                if not len(masked_map):
+                    # Everything is masked
+                    masked_map = np.zeros((1))
                 if kwargs.get('vmin') is None:
                     kwargs['vmin'] = masked_map.min()
                 if kwargs.get('max') is None:

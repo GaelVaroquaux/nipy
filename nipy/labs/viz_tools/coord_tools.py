@@ -131,8 +131,14 @@ def get_mask_bounds(mask, affine):
         The affine should be diagonal or diagonal-permuted.
     """
     (xmin, xmax), (ymin, ymax), (zmin, zmax) = get_bounds(mask.shape, affine)
-    x_slice, y_slice, z_slice = ndimage.find_objects(mask)[0]
+    objects_bounds = ndimage.find_objects(mask)
     x_width, y_width, z_width = mask.shape
+    if len(objects_bounds):
+        x_slice, y_slice, z_slice = objects_bounds[0]
+    else:
+        x_slice = slice(.49*x_width, .51*x_width)
+        y_slice = slice(.49*y_width, .51*y_width)
+        z_slice = slice(.49*z_width, .51*z_width)
     xmin, xmax = (xmin + x_slice.start*(xmax - xmin)/x_width,
                   xmin + x_slice.stop *(xmax - xmin)/x_width)
     ymin, ymax = (ymin + y_slice.start*(ymax - ymin)/y_width,
