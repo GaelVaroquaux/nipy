@@ -161,6 +161,8 @@ def compute_mask_files(input_filename, output_filename=None,
                 affine = nim.get_affine()
             else:
                 mean_volume += nim.get_data().squeeze()
+            print "Computing mask: % 3i out of %i" % (index,
+                        len(list(input_filename)))
         mean_volume /= float(len(list(input_filename)))
     del nim
     if np.isnan(mean_volume).any():
@@ -483,5 +485,7 @@ def series_from_mask(filenames, mask, dtype=np.float32,
             del data
             if index == 0:
                 header = data_file.get_header()
+            print "Extracting time series: % 3i out of %i" % (index,
+                            nb_time_points)
 
     return series, header

@@ -258,10 +258,9 @@ class BaseSlicer(object):
                 figsize[0] += 3.4
             figure = pl.figure(figure, figsize=figsize,
                             facecolor=facecolor)
-        else:
-            if isinstance(axes, pl.Axes):
-                assert axes.figure is figure, ("The axes passed are not "
-                "in the figure")
+        if isinstance(axes, pl.Axes):
+            assert axes.figure is figure, ("The axes passed are not "
+                    "in the figure")
 
         if axes is None:
             axes = [0., 0., 1., 1.]
@@ -491,6 +490,8 @@ class OrthoSlicer(BaseSlicer):
         The extent of the different axes are adjusted to fit the data
         best in the viewing area.
     """
+    _cut_displayed = 'yxz'
+
     @staticmethod
     def find_cut_coords(data=None, affine=None, threshold=None,
                         cut_coords=None):
@@ -508,10 +509,10 @@ class OrthoSlicer(BaseSlicer):
         x0, y0, x1, y1 = self.rect
         # Create our axes:
         self.axes = dict()
-        for index, direction in enumerate(('y', 'x', 'z')):
+        for index, direction in enumerate(self._cut_displayed):
             ax = pl.axes([0.3*index*(x1-x0) + x0, y0, .3*(x1-x0), y1-y0])
             ax.axis('off')
-            coord = self._cut_coords['xyz'.index(direction)]
+            coord = self._cut_coords[sorted(self._cut_displayed).index(direction)]
             cut_ax = CutAxes(ax, direction, coord)
             self.axes[direction] = cut_ax
             ax.set_axes_locator(self._locator)
@@ -523,10 +524,11 @@ class OrthoSlicer(BaseSlicer):
         """
         x0, y0, x1, y1 = self.rect
         width_dict = dict()
+        # A dummy axes, for the situation in which we are not plotting
+        # all three (x, y, z) cuts
+        dummy_ax = CutAxes(None, None, None)
+        width_dict[dummy_ax.ax] = 0
         cut_ax_dict = self.axes
-        x_ax = cut_ax_dict['x']
-        y_ax = cut_ax_dict['y']
-        z_ax = cut_ax_dict['z']
         for cut_ax in cut_ax_dict.itervalues():
             bounds = cut_ax.get_object_bounds()
             if not bounds:
@@ -540,6 +542,9 @@ class OrthoSlicer(BaseSlicer):
         total_width = float(sum(width_dict.values()))
         for ax, width in width_dict.iteritems():
             width_dict[ax] = width/total_width*(x1 -x0)
+        x_ax = cut_ax_dict.get('x', dummy_ax)
+        y_ax = cut_ax_dict.get('y', dummy_ax)
+        z_ax = cut_ax_dict.get('z', dummy_ax)
         left_dict = dict()
         left_dict[y_ax.ax] = x0
         left_dict[x_ax.ax] = x0 + width_dict[y_ax.ax]
@@ -562,24 +567,41 @@ class OrthoSlicer(BaseSlicer):
         """
         if cut_coords is None:
             cut_coords = self._cut_coords
-        x, y, z = cut_coords
+        coords = dict()
+        for direction in 'xyz':
+            coord = None
+            if direction in self._cut_displayed:
+                coord = cut_coords[sorted(self._cut_displayed).index(direction)]
+            coords[direction] = coord 
+        x, y, z = coords['x'], coords['y'], coords['z']
+
         kwargs = kwargs.copy()
         if not 'color' in kwargs:
             if self._black_bg:
                 kwargs['color'] = '.8'
             else:
                 kwargs['color'] = 'k'
-        ax = self.axes['y'].ax
-        ax.axvline(x, ymin=.05, ymax=.95, **kwargs)
-        ax.axhline(z, **kwargs)
 
-        ax = self.axes['x'].ax
-        ax.axvline(y, ymin=.05, ymax=.95, **kwargs)
-        ax.axhline(z, xmax=.95, **kwargs)
+        if 'y' in self.axes:
+            ax = self.axes['y'].ax
+            if x is not None:
+                ax.axvline(x, ymin=.05, ymax=.95, **kwargs)
+            if z is not None:
+                ax.axhline(z, **kwargs)
 
-        ax = self.axes['z'].ax
-        ax.axvline(x, ymin=.05, ymax=.95, **kwargs)
-        ax.axhline(y, **kwargs)
+        if 'x' in self.axes:
+            ax = self.axes['x'].ax
+            if y is not None:
+                ax.axvline(y, ymin=.05, ymax=.95, **kwargs)
+            if z is not None:
+                ax.axhline(z, xmax=.95, **kwargs)
+
+        if 'z' in self.axes:
+            ax = self.axes['z'].ax
+            if x is not None:
+                ax.axvline(x, ymin=.05, ymax=.95, **kwargs)
+            if y is not None:
+                ax.axhline(y, **kwargs)
 
 
 
@@ -717,7 +739,22 @@ class ZSlicer(BaseStackedSlicer):
     _direction = 'z'
 
 
+class XZSlicer(OrthoSlicer):
+    _cut_displayed = 'xz'
+
+
+class YXSlicer(OrthoSlicer):
+    _cut_displayed = 'yx'
+
+
+class YZSlicer(OrthoSlicer):
+    _cut_displayed = 'yz'
+
+
 SLICERS = dict(ortho=OrthoSlicer,
+               xz=XZSlicer,
+               yz=YZSlicer,
+               yx=YXSlicer,
                x=XSlicer,
                y=YSlicer,
                z=ZSlicer)
