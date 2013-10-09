@@ -81,7 +81,7 @@ def find_cut_coords(map, mask=None, activation_threshold=None):
     """
     # To speed up computations, we work with partial views of the array,
     # and keep track of the offset
-    offset = np.zeros(3) 
+    offset = np.zeros(3)
     # Deal with masked arrays:
     if hasattr(map, 'mask'):
         not_mask = np.logical_not(map.mask)
